@@ -40,3 +40,9 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           path_to_bun_executable: ~/.bun/bin/bun
           claude_args: "--model claude-sonnet-4-6 --max-turns 15"
+          trigger_phrase: "@claude"
+          prompt: |
+            Review this PR thoroughly. Check for bugs, security issues,
+            performance problems, and code style. Post inline review comments
+            on specific lines where you find issues. If everything looks good,
+            approve the PR with a summary comment.
