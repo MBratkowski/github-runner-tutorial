@@ -3,6 +3,8 @@ name: Claude Code Review
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: write
@@ -11,22 +13,53 @@ permissions:
 
 jobs:
   review:
+    if: |
+      (github.event_name == 'pull_request') ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       contains(github.event.comment.body, '@claude'))
     runs-on: self-hosted
     timeout-minutes: 30
     steps:
+      - name: Get PR info
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+            echo "base=${{ github.event.pull_request.base.ref }}" >> $GITHUB_OUTPUT
+            echo "head=${{ github.event.pull_request.head.ref }}" >> $GITHUB_OUTPUT
+            echo "mode=review" >> $GITHUB_OUTPUT
+          else
+            PR_NUMBER=${{ github.event.issue.number }}
+            echo "number=${PR_NUMBER}" >> $GITHUB_OUTPUT
+            PR_DATA=$(gh pr view $PR_NUMBER --repo ${{ github.repository }} --json baseRefName,headRefName)
+            echo "base=$(echo $PR_DATA | jq -r '.baseRefName')" >> $GITHUB_OUTPUT
+            echo "head=$(echo $PR_DATA | jq -r '.headRefName')" >> $GITHUB_OUTPUT
+            echo "mode=comment" >> $GITHUB_OUTPUT
+          fi
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref }}
+          ref: ${{ steps.pr.outputs.head }}
           fetch-depth: 0
 
-      - name: Get PR info
-        id: pr
+      - name: Configure git
         run: |
-          echo "number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
-          echo "base=${{ github.event.pull_request.base.ref }}" >> $GITHUB_OUTPUT
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Review PR (read-only)
+      - name: React to comment
+        if: steps.pr.outputs.mode == 'comment'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api repos/${{ github.repository }}/issues/comments/${{ github.event.comment.id }}/reactions -f content=eyes
+
+      - name: Review and fix PR
+        if: steps.pr.outputs.mode == 'review'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -34,28 +67,49 @@ jobs:
           BASE_BRANCH: ${{ steps.pr.outputs.base }}
         run: |
           PROMPT="You are reviewing PR #${PR_NUMBER}.
+
           1. Run 'git diff origin/${BASE_BRANCH}...HEAD' to see all changes.
-          2. Review the code for bugs, security issues, performance problems, and style.
-          3. Post your review as a PR comment using: gh pr comment ${PR_NUMBER} --body '<your review>'
-          4. Be constructive and specific. If the code looks good, say so.
-          5. Format the review in markdown with sections for each file changed."
+          2. Read the changed files fully to understand context.
+          3. Review the code for: bugs, security issues, performance problems, missing error handling, logic errors, and style.
+          4. Fix every issue you find — edit the files directly. Be thorough but don't refactor things that aren't broken.
+          5. If you made any fixes:
+             - Stage and commit with a descriptive message like 'fix: <what you fixed>'
+             - Push with 'git push'
+          6. Post a PR comment using: gh pr comment ${PR_NUMBER} --body '<your review>'
+             Include:
+             - What you reviewed
+             - What issues you found
+             - What you fixed (with file:line references)
+             - What remains for the author to address (if anything)
+             - If everything looks good, say so
+          7. Format the review in markdown."
+
           claude -p "$PROMPT" \
-            --allowedTools "Bash(git diff:*),Bash(git log:*),Bash(gh *),Read,Glob,Grep" \
+            --allowedTools "Bash(git *),Bash(gh *),Read,Glob,Grep,Write,Edit" \
             --dangerously-skip-permissions
 
-      - name: Auto-fix minor issues
+      - name: Handle @claude comment
+        if: steps.pr.outputs.mode == 'comment'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
           BASE_BRANCH: ${{ steps.pr.outputs.base }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
         run: |
-          PROMPT="You are auto-fixing minor issues in PR #${PR_NUMBER}.
-          1. Run 'git diff origin/${BASE_BRANCH}...HEAD' to see all changes.
-          2. Fix ONLY: formatting issues, typos in comments/strings, missing newlines at EOF, trailing whitespace.
-          3. Do NOT change logic, rename variables, or refactor code.
-          4. If you made changes, commit with message 'fix: auto-fix minor formatting issues' and push.
-          5. If no fixes needed, do nothing."
+          PROMPT="You are working on PR #${PR_NUMBER}. A reviewer left this comment:
+
+          ${COMMENT_BODY}
+
+          1. Run 'git diff origin/${BASE_BRANCH}...HEAD' to understand the current PR changes.
+          2. Read relevant files to understand context.
+          3. Do exactly what the comment asks — implement the requested changes, fixes, or improvements.
+          4. If you made changes:
+             - Stage and commit with a descriptive message
+             - Push with 'git push'
+          5. Reply to the PR confirming what you did: gh pr comment ${PR_NUMBER} --body '<summary of changes>'
+          6. If the request is unclear or you can't do it, explain why in a PR comment."
+
           claude -p "$PROMPT" \
-            --allowedTools "Bash(git *),Read,Glob,Grep,Write,Edit" \
+            --allowedTools "Bash(git *),Bash(gh *),Read,Glob,Grep,Write,Edit" \
             --dangerously-skip-permissions
