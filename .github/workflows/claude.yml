@@ -41,6 +41,9 @@ jobs:
           chmod +x /tmp/claude-ci-home/.bun/bin/bun
           rm -rf /tmp/bun.zip /tmp/bun-override
 
+          # Put baseline bun first in PATH so the action itself uses it
+          echo "/tmp/claude-ci-home/.bun/bin" >> $GITHUB_PATH
+
           # Create clean Claude config (no local hooks)
           mkdir -p /tmp/claude-ci-home/.claude
           echo '{}' > /tmp/claude-ci-home/.claude/settings.json
