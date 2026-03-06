@@ -52,4 +52,6 @@ jobs:
           3. Commit your changes with a descriptive message and push.
           4. Reply to the PR with a comment summarizing what you did:
              gh pr comment ${PR_NUMBER} --body '<summary of changes>'"
-          claude -p "$PROMPT" --allowedTools "Bash(git *),Bash(gh *),Read,Glob,Grep,Write,Edit"
+          claude -p "$PROMPT" \
+            --allowedTools "Bash(git *),Bash(gh *),Read,Glob,Grep,Write,Edit" \
+            --dangerously-skip-permissions

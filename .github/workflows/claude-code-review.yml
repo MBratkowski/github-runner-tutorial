@@ -39,7 +39,9 @@ jobs:
           3. Post your review as a PR comment using: gh pr comment ${PR_NUMBER} --body '<your review>'
           4. Be constructive and specific. If the code looks good, say so.
           5. Format the review in markdown with sections for each file changed."
-          claude -p "$PROMPT" --allowedTools "Bash(git diff:*),Bash(git log:*),Bash(gh *),Read,Glob,Grep"
+          claude -p "$PROMPT" \
+            --allowedTools "Bash(git diff:*),Bash(git log:*),Bash(gh *),Read,Glob,Grep" \
+            --dangerously-skip-permissions
 
       - name: Auto-fix minor issues
         env:
@@ -54,4 +56,6 @@ jobs:
           3. Do NOT change logic, rename variables, or refactor code.
           4. If you made changes, commit with message 'fix: auto-fix minor formatting issues' and push.
           5. If no fixes needed, do nothing."
-          claude -p "$PROMPT" --allowedTools "Bash(git *),Read,Glob,Grep,Write,Edit"
+          claude -p "$PROMPT" \
+            --allowedTools "Bash(git *),Read,Glob,Grep,Write,Edit" \
+            --dangerously-skip-permissions

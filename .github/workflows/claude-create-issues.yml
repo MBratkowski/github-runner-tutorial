@@ -36,4 +36,6 @@ jobs:
              - Files likely to change
              - Suggested approach
           5. Label issues if labels exist (check with gh label list first)."
-          claude -p "$PROMPT" --allowedTools "Bash(gh *),Read,Glob,Grep"
+          claude -p "$PROMPT" \
+            --allowedTools "Bash(gh *),Read,Glob,Grep" \
+            --dangerously-skip-permissions

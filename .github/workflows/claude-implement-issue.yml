@@ -79,7 +79,9 @@ jobs:
           5. Run './gradlew testDebugUnitTest' to run tests.
           6. Commit changes with message 'feat: <description> (#${ISSUE_NUMBER})'.
           7. Do NOT push - the workflow will handle that."
-          claude -p "$PROMPT" --allowedTools "Bash(git *),Bash(gh *),Bash(./gradlew *),Read,Glob,Grep,Write,Edit"
+          claude -p "$PROMPT" \
+            --allowedTools "Bash(git *),Bash(gh *),Bash(./gradlew *),Read,Glob,Grep,Write,Edit" \
+            --dangerously-skip-permissions
 
       - name: Push branch
         run: |
