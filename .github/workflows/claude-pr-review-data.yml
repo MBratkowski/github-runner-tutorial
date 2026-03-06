@@ -50,48 +50,35 @@ jobs:
             - **DI Scoping:** Singleton vs scoped instances, context leaks in DI container, lazy initialization issues
 
             ## Output Format — Inline Comments
-            Post your review using the GitHub API with inline comments pinned to specific lines.
+            Post a SINGLE GitHub review with all findings as inline comments on specific lines.
 
             ### How to determine line numbers
             1. Run `gh pr diff ${{ github.event.pull_request.number }}`
-            2. In the diff output, look at the `@@` hunk headers, e.g. `@@ -10,6 +12,8 @@`
-               - The `+12,8` means new file starts at line 12 for 8 lines
-            3. Count lines with `+` prefix (added) or ` ` prefix (context) from the hunk start
-            4. The `line` value in your JSON must be the LINE NUMBER IN THE NEW VERSION OF THE FILE
-            5. You can also read the full file to verify line numbers
+            2. Look at `@@` hunk headers: `@@ -10,6 +12,8 @@` — the `+12` means new file line 12
+            3. Count lines with `+` or ` ` prefix from hunk start to find each line number
+            4. Read the changed files to verify exact line numbers
 
-            ### CRITICAL RULES for the JSON
-            - Use `"line"` (integer) — the line number in the file, NOT the diff position
-            - Use `"side": "RIGHT"` — always comment on the new version
-            - Do NOT include a `"position"` field — it will override `line` and break placement
-            - Only comment on lines that appear in the diff (added or modified lines)
+            ### Posting the review
+            1. Use the Write tool to create `/tmp/review.json`
+            2. Run: `gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews --method POST --input /tmp/review.json`
 
-            ### Build and post the review
-            Create `/tmp/review.json`:
+            The JSON MUST follow this exact structure:
             ```json
             {
               "event": "COMMENT",
               "body": "## [Data Layer Review]\n\n<1-line summary>",
               "comments": [
                 {
-                  "path": "app/src/main/java/com/example/todoapp/data/repository/TodoRepository.kt",
+                  "path": "app/src/.../File.kt",
                   "line": 27,
                   "side": "RIGHT",
-                  "body": "**[CRITICAL]** Missing `@Transaction` — data loss risk."
+                  "body": "**[CRITICAL]** Description."
                 }
               ]
             }
             ```
 
-            Post with:
-            ```bash
-            gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews \
-              --method POST \
-              --input /tmp/review.json
-            ```
-
-            Rules:
-            - Each finding = one inline comment on the exact line
-            - Use severity prefix: **[CRITICAL]**, **[WARNING]**, **[SUGGESTION]**, **[NITPICK]**
-            - Only report findings relevant to data/DI layer. Skip general code style issues.
-            - Be concise in each comment
+            CRITICAL: Each comment MUST have `"line"` (integer = line in the new file) and `"side": "RIGHT"`.
+            Do NOT use `"position"`. Only comment on lines that appear in the diff.
+            Put ALL findings in one review. Use severity: **[CRITICAL]**, **[WARNING]**, **[SUGGESTION]**, **[NITPICK]**.
+            Only flag data/DI issues. Be concise.
