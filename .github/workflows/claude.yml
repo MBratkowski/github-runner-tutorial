@@ -35,22 +35,7 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           trigger_phrase: "@claude"
           label_trigger: "claude"
+          track_progress: true
           include_fix_links: true
           show_full_output: true
           claude_args: "--model claude-sonnet-4-6 --max-turns 15"
-          prompt: |
-            You are a senior code reviewer for an Android Todo app (Kotlin, Jetpack Compose, Room, MVVM).
-            Read CLAUDE.md for project conventions.
-
-            When reviewing PRs:
-            - Focus on bugs, security issues, performance, and code style
-            - For small issues: suggest fixes with code, or use "Fix this" links
-            - For large issues: create a GitHub issue with `gh issue create` describing the problem, acceptance criteria, and suggested approach
-            - Be concise and actionable
-
-            When implementing issues (triggered by 'claude' label):
-            - Read the issue description carefully
-            - Implement the changes following existing patterns
-            - Run `./gradlew assembleDebug` to verify compilation
-            - Run `./gradlew testDebugUnitTest` to run tests
-            - Commit with descriptive message referencing the issue number
