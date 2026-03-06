@@ -9,6 +9,7 @@ on:
         type: string
 
 permissions:
+  contents: read
   issues: write
 
 jobs:
@@ -16,26 +17,22 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 15
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Create issues with Claude
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          FEATURE: ${{ inputs.feature_description }}
-        run: |
-          PROMPT="Break down this feature into GitHub issues: ${FEATURE}
-          1. Read the codebase to understand the current architecture.
-          2. Split the feature into 3-6 logical issues.
-          3. For each issue, create it with:
-             gh issue create --title '<title>' --body '<body>'
-          4. Each issue body should include:
-             - Description of the task
-             - Acceptance criteria (checklist)
-             - Files likely to change
-             - Suggested approach
-          5. Label issues if labels exist (check with gh label list first)."
-          claude -p "$PROMPT" \
-            --allowedTools "Bash(gh *),Read,Glob,Grep" \
-            --dangerously-skip-permissions
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: "--model claude-sonnet-4-6 --max-turns 10"
+          direct_prompt: |
+            Break down this feature into GitHub issues: ${{ inputs.feature_description }}
+
+            1. Read the codebase to understand the current architecture (check CLAUDE.md first).
+            2. Split the feature into 3-6 logical issues.
+            3. For each issue, create it with:
+               gh issue create --title '<title>' --body '<body>'
+            4. Each issue body should include:
+               - Description of the task
+               - Acceptance criteria (checklist)
+               - Files likely to change
+               - Suggested approach
+            5. Label issues if labels exist (check with gh label list first).
