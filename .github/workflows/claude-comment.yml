@@ -46,11 +46,10 @@ jobs:
           PR_NUMBER: ${{ steps.pr.outputs.number }}
           COMMENT_BODY: ${{ github.event.comment.body }}
         run: |
-          claude -p \
-            --allowedTools "Bash(git *),Bash(gh *),Read,Glob,Grep,Write,Edit" \
-            "A user commented on PR #$PR_NUMBER with: $COMMENT_BODY \
-            1. Understand what they're asking for. \
-            2. Read the relevant files and implement the requested changes. \
-            3. Commit your changes with a descriptive message and push. \
-            4. Reply to the PR with a comment summarizing what you did: \
-               gh pr comment $PR_NUMBER --body '<summary of changes>'"
+          PROMPT="A user commented on PR #${PR_NUMBER} with: ${COMMENT_BODY}
+          1. Understand what they're asking for.
+          2. Read the relevant files and implement the requested changes.
+          3. Commit your changes with a descriptive message and push.
+          4. Reply to the PR with a comment summarizing what you did:
+             gh pr comment ${PR_NUMBER} --body '<summary of changes>'"
+          claude -p "$PROMPT" --allowedTools "Bash(git *),Bash(gh *),Read,Glob,Grep,Write,Edit"

@@ -68,19 +68,18 @@ jobs:
           ISSUE_TITLE: ${{ steps.issue_data.outputs.title }}
           ISSUE_BODY: ${{ steps.issue_data.outputs.body }}
         run: |
-          claude -p \
-            --allowedTools "Bash(git *),Bash(gh *),Bash(./gradlew *),Read,Glob,Grep,Write,Edit" \
-            "Implement GitHub issue #$ISSUE_NUMBER.
-            Title: $ISSUE_TITLE
-            Body: $ISSUE_BODY
+          PROMPT="Implement GitHub issue #${ISSUE_NUMBER}.
+          Title: ${ISSUE_TITLE}
+          Body: ${ISSUE_BODY}
 
-            1. Read the codebase to understand the architecture (check CLAUDE.md first).
-            2. Implement the feature/fix described in the issue.
-            3. Follow existing code conventions (Kotlin, Compose, MVVM, manual DI).
-            4. Run './gradlew assembleDebug' to verify it compiles.
-            5. Run './gradlew testDebugUnitTest' to run tests.
-            6. Commit changes with message 'feat: <description> (#$ISSUE_NUMBER)'.
-            7. Do NOT push - the workflow will handle that."
+          1. Read the codebase to understand the architecture (check CLAUDE.md first).
+          2. Implement the feature/fix described in the issue.
+          3. Follow existing code conventions (Kotlin, Compose, MVVM, manual DI).
+          4. Run './gradlew assembleDebug' to verify it compiles.
+          5. Run './gradlew testDebugUnitTest' to run tests.
+          6. Commit changes with message 'feat: <description> (#${ISSUE_NUMBER})'.
+          7. Do NOT push - the workflow will handle that."
+          claude -p "$PROMPT" --allowedTools "Bash(git *),Bash(gh *),Bash(./gradlew *),Read,Glob,Grep,Write,Edit"
 
       - name: Push branch
         run: |

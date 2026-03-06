@@ -33,14 +33,13 @@ jobs:
           PR_NUMBER: ${{ steps.pr.outputs.number }}
           BASE_BRANCH: ${{ steps.pr.outputs.base }}
         run: |
-          claude -p \
-            --allowedTools "Bash(git diff:*),Bash(git log:*),Read,Glob,Grep" \
-            "You are reviewing PR #$PR_NUMBER. \
-            1. Run 'git diff origin/$BASE_BRANCH...HEAD' to see all changes. \
-            2. Review the code for bugs, security issues, performance problems, and style. \
-            3. Post your review as a PR comment using: gh pr comment $PR_NUMBER --body '<your review>' \
-            4. Be constructive and specific. If the code looks good, say so. \
-            5. Format the review in markdown with sections for each file changed."
+          PROMPT="You are reviewing PR #${PR_NUMBER}.
+          1. Run 'git diff origin/${BASE_BRANCH}...HEAD' to see all changes.
+          2. Review the code for bugs, security issues, performance problems, and style.
+          3. Post your review as a PR comment using: gh pr comment ${PR_NUMBER} --body '<your review>'
+          4. Be constructive and specific. If the code looks good, say so.
+          5. Format the review in markdown with sections for each file changed."
+          claude -p "$PROMPT" --allowedTools "Bash(git diff:*),Bash(git log:*),Bash(gh *),Read,Glob,Grep"
 
       - name: Auto-fix minor issues
         env:
@@ -49,11 +48,10 @@ jobs:
           PR_NUMBER: ${{ steps.pr.outputs.number }}
           BASE_BRANCH: ${{ steps.pr.outputs.base }}
         run: |
-          claude -p \
-            --allowedTools "Bash(git *),Read,Glob,Grep,Write,Edit" \
-            "You are auto-fixing minor issues in PR #$PR_NUMBER. \
-            1. Run 'git diff origin/$BASE_BRANCH...HEAD' to see all changes. \
-            2. Fix ONLY: formatting issues, typos in comments/strings, missing newlines at EOF, trailing whitespace. \
-            3. Do NOT change logic, rename variables, or refactor code. \
-            4. If you made changes, commit with message 'fix: auto-fix minor formatting issues' and push. \
-            5. If no fixes needed, do nothing."
+          PROMPT="You are auto-fixing minor issues in PR #${PR_NUMBER}.
+          1. Run 'git diff origin/${BASE_BRANCH}...HEAD' to see all changes.
+          2. Fix ONLY: formatting issues, typos in comments/strings, missing newlines at EOF, trailing whitespace.
+          3. Do NOT change logic, rename variables, or refactor code.
+          4. If you made changes, commit with message 'fix: auto-fix minor formatting issues' and push.
+          5. If no fixes needed, do nothing."
+          claude -p "$PROMPT" --allowedTools "Bash(git *),Read,Glob,Grep,Write,Edit"
