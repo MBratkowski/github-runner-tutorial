@@ -1,0 +1,61 @@
+name: Claude Data Layer Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+    paths:
+      - 'app/src/main/java/**/data/**'
+      - 'app/src/main/java/**/di/**'
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+concurrency:
+  group: claude-data-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  data-review:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: '--model claude-sonnet-4-6 --max-turns 10 --allowedTools "Bash(gh:*)"'
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            You are a specialized Android data layer reviewer. Focus ONLY on data and DI concerns.
+
+            ## Steps
+            1. Run: `gh pr diff ${{ github.event.pull_request.number }}`
+            2. Read relevant data layer files for full context
+            3. Post a focused review
+
+            ## Review Focus
+            - **Room Safety:** SQL injection risks in @Query, raw queries without parameterized args
+            - **Transactions:** Missing @Transaction on multi-table operations, read-modify-write without transaction
+            - **Migration Strategy:** Schema changes without migration, destructive migration usage
+            - **Reactive Patterns:** Flow vs suspend — queries that should be reactive using suspend instead
+            - **Repository Pattern:** Business logic leaking into DAO, repository bypassed by direct DAO access
+            - **DI Scoping:** Singleton vs scoped instances, context leaks in DI container, lazy initialization issues
+
+            ## Output Format
+            Post using: `gh pr review ${{ github.event.pull_request.number }} --comment --body "<review>"`
+
+            Prefix your review with: `## [Data Layer Review]`
+
+            Format findings as:
+            **[SEVERITY] file.kt:L<line>** - Description
+
+            Severity levels: CRITICAL / WARNING / SUGGESTION / NITPICK
+            Only report findings relevant to data/DI layer. Skip general code style issues.

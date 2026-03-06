@@ -1,0 +1,64 @@
+name: Claude PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+concurrency:
+  group: claude-pr-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          include_fix_links: true
+          claude_args: '--model claude-sonnet-4-6 --max-turns 15 --allowedTools "Bash(gh:*)"'
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            You are an expert Android/Kotlin code reviewer. Review this PR thoroughly.
+
+            ## Steps
+            1. Run: `gh pr diff ${{ github.event.pull_request.number }}`
+            2. Read `CLAUDE.md` for project conventions and review guidelines
+            3. Analyze the diff for issues
+
+            ## Review Focus (Android-specific)
+            - Coroutine usage: proper scope (viewModelScope), structured concurrency, suspend functions
+            - Compose recomposition: stable parameters, proper use of remember/derivedStateOf, state hoisting
+            - Room database: Flow for reactive queries, proper @Transaction usage, migration strategy
+            - Memory leaks: context references, coroutine scope lifecycle, callback cleanup
+            - Null safety and error handling
+            - General: bugs, security issues, performance, code style
+
+            ## Severity Ratings
+            Use these severity levels for each finding:
+            - **CRITICAL** — bugs, crashes, security vulnerabilities, data loss risks
+            - **WARNING** — performance issues, potential memory leaks, incorrect patterns
+            - **SUGGESTION** — better approaches, cleaner patterns, maintainability improvements
+            - **NITPICK** — style, naming, minor formatting
+
+            ## Output Format
+            Post your review using: `gh pr review ${{ github.event.pull_request.number }} --comment --body "<review>"`
+
+            Format each finding as:
+            **[SEVERITY] file.kt:L<line>** - Description
+
+            Group findings by file. Start with a 1-line summary of overall PR quality.
+            Be concise. Only flag real issues, not stylistic preferences unless they violate CLAUDE.md conventions.
