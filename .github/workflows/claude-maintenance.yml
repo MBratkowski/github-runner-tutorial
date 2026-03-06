@@ -1,0 +1,62 @@
+name: Claude Weekly Maintenance
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+  id-token: write
+
+jobs:
+  maintenance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: '--model claude-sonnet-4-6 --max-turns 20 --allowedTools "Bash(gh:*)"'
+          prompt: |
+            REPO: ${{ github.repository }}
+
+            You are a maintenance bot for an Android TODO app. Perform a weekly health check and create a summary issue.
+
+            ## Checks to Perform
+
+            ### 1. Stale Issues & PRs
+            - Run: `gh issue list --state open --json number,title,updatedAt`
+            - Run: `gh pr list --state open --json number,title,updatedAt`
+            - Flag items with no activity in the last 14 days
+
+            ### 2. TODO/FIXME Scan
+            - Search the codebase for TODO, FIXME, HACK, XXX comments
+            - List file, line number, and the comment text
+
+            ### 3. Dependency Check
+            - Read `build.gradle.kts` and `app/build.gradle.kts`
+            - Note any dependencies that may have newer versions available
+            - Check for deprecated API usage patterns
+
+            ### 4. Test Coverage Gaps
+            - Compare source files in `app/src/main/java/` with test files in `app/src/test/java/`
+            - Identify source files without corresponding test files
+
+            ## Output
+            Create a maintenance summary issue:
+            ```
+            gh issue create \
+              --title "Weekly Maintenance Report - $(date +%Y-%m-%d)" \
+              --label "maintenance" \
+              --body "<report>"
+            ```
+
+            Format the report with sections for each check. Use checkboxes for actionable items.
+            Be concise — focus on items that need attention, skip sections with no findings.

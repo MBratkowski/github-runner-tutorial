@@ -1,0 +1,62 @@
+name: Claude Issue Implementation
+
+on:
+  issues:
+    types: [opened, labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+
+jobs:
+  implement:
+    if: contains(github.event.issue.labels.*.name, 'claude')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          label_trigger: "claude"
+          claude_args: '--model claude-sonnet-4-6 --max-turns 25 --allowedTools "Bash(gh:*)" --allowedTools "Bash(./gradlew:*)"'
+          prompt: |
+            REPO: ${{ github.repository }}
+            ISSUE NUMBER: ${{ github.event.issue.number }}
+
+            You are an Android developer implementing a feature/fix from a GitHub issue.
+
+            ## Steps
+            1. Run: `gh issue view ${{ github.event.issue.number }}` to understand the requirement
+            2. Read `CLAUDE.md` for project conventions
+            3. Create a branch: `git checkout -b claude/issue-${{ github.event.issue.number }}`
+            4. Implement the changes following project conventions
+            5. Build: `./gradlew assembleDebug`
+            6. Test: `./gradlew testDebugUnitTest`
+            7. If build/tests fail, fix the issues and retry
+            8. Commit with a descriptive message referencing the issue: `Fixes #${{ github.event.issue.number }}`
+            9. Push: `git push -u origin claude/issue-${{ github.event.issue.number }}`
+            10. Create PR:
+                ```
+                gh pr create \
+                  --title "<concise title>" \
+                  --body "Fixes #${{ github.event.issue.number }}\n\n## Changes\n<description>\n\n## Testing\n- ./gradlew assembleDebug - PASS\n- ./gradlew testDebugUnitTest - PASS" \
+                  --base main
+                ```
+
+            ## Guidelines
+            - Follow Kotlin coding conventions and project patterns from CLAUDE.md
+            - Use Jetpack Compose with Material 3 for UI changes
+            - Use Room + Flow for data layer changes
+            - Keep changes minimal and focused on the issue
+            - Do NOT skip build/test verification
