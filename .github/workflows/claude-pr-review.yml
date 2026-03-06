@@ -55,10 +55,38 @@ jobs:
             - **NITPICK** — style, naming, minor formatting
 
             ## Output Format
-            Post your review using: `gh pr review ${{ github.event.pull_request.number }} --comment --body "<review>"`
+            Post your review using the GitHub API with INLINE comments on specific lines.
+            Use `gh pr diff ${{ github.event.pull_request.number }}` to identify the exact changed line numbers in the diff.
 
-            Format each finding as:
-            **[SEVERITY] file.kt:L<line>** - Description
+            IMPORTANT: You MUST use the `line` parameter (not `position`) — this is the line number in the file, not the diff hunk position.
+            Only comment on lines that are part of the PR diff (added or modified lines on the RIGHT side of the diff).
 
-            Group findings by file. Start with a 1-line summary of overall PR quality.
-            Be concise. Only flag real issues, not stylistic preferences unless they violate CLAUDE.md conventions.
+            Build a JSON file `/tmp/review.json` with this structure:
+            ```json
+            {
+              "event": "COMMENT",
+              "body": "## PR Review Summary\n\n<1-line overall assessment>",
+              "comments": [
+                {
+                  "path": "relative/path/to/file.kt",
+                  "line": <line_number_in_file>,
+                  "side": "RIGHT",
+                  "body": "**[SEVERITY]** Description of the issue.\n\nSuggested fix: ..."
+                }
+              ]
+            }
+            ```
+
+            Then post it with:
+            ```bash
+            gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews \
+              --method POST \
+              --input /tmp/review.json
+            ```
+
+            Rules:
+            - Each finding = one inline comment on the exact line
+            - Use severity prefix: **[CRITICAL]**, **[WARNING]**, **[SUGGESTION]**, **[NITPICK]**
+            - The `body` field in the top-level review is a short summary
+            - Only flag real issues, not stylistic preferences unless they violate CLAUDE.md conventions
+            - Be concise in each comment

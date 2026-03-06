@@ -50,12 +50,37 @@ jobs:
             - **DI Scoping:** Singleton vs scoped instances, context leaks in DI container, lazy initialization issues
 
             ## Output Format
-            Post using: `gh pr review ${{ github.event.pull_request.number }} --comment --body "<review>"`
+            Post your review using the GitHub API with INLINE comments on specific lines.
+            Use `gh pr diff ${{ github.event.pull_request.number }}` to identify the exact changed line numbers in the diff.
 
-            Prefix your review with: `## [Data Layer Review]`
+            IMPORTANT: You MUST use the `line` parameter (not `position`) — this is the line number in the file, not the diff hunk position.
+            Only comment on lines that are part of the PR diff (added or modified lines on the RIGHT side of the diff).
 
-            Format findings as:
-            **[SEVERITY] file.kt:L<line>** - Description
+            Build a JSON file `/tmp/review.json` with this structure:
+            ```json
+            {
+              "event": "COMMENT",
+              "body": "## [Data Layer Review]\n\n<1-line summary of data layer findings>",
+              "comments": [
+                {
+                  "path": "relative/path/to/file.kt",
+                  "line": <line_number_in_file>,
+                  "side": "RIGHT",
+                  "body": "**[SEVERITY]** Description of the issue.\n\nSuggested fix: ..."
+                }
+              ]
+            }
+            ```
 
-            Severity levels: CRITICAL / WARNING / SUGGESTION / NITPICK
-            Only report findings relevant to data/DI layer. Skip general code style issues.
+            Then post it with:
+            ```bash
+            gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews \
+              --method POST \
+              --input /tmp/review.json
+            ```
+
+            Rules:
+            - Each finding = one inline comment on the exact line
+            - Use severity prefix: **[CRITICAL]**, **[WARNING]**, **[SUGGESTION]**, **[NITPICK]**
+            - Only report findings relevant to data/DI layer. Skip general code style issues.
+            - Be concise in each comment
