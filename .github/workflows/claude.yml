@@ -49,7 +49,6 @@ jobs:
           HOME: /tmp/claude-ci-home
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           path_to_bun_executable: /tmp/claude-ci-home/.bun/bin/bun
           claude_args: "--model claude-sonnet-4-6 --max-turns 15 --dangerously-skip-permissions"
           trigger_phrase: "@claude"
