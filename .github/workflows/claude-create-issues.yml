@@ -19,18 +19,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Bun baseline (no AVX required)
+      - name: Override Bun with working baseline build
         run: |
-          curl -fsSL https://github.com/oven-sh/bun/releases/download/bun-v1.3.6/bun-darwin-x64-baseline.zip -o /tmp/bun.zip
-          unzip -o -q /tmp/bun.zip -d /tmp/bun-baseline
-          chmod +x /tmp/bun-baseline/bun-darwin-x64-baseline/bun
-          rm /tmp/bun.zip
+          curl -fsSL https://github.com/oven-sh/bun/releases/download/bun-v1.3.10/bun-darwin-x64-baseline.zip -o /tmp/bun.zip
+          unzip -o -q /tmp/bun.zip -d /tmp/bun-override
+          mkdir -p "$HOME/.bun/bin"
+          cp /tmp/bun-override/bun-darwin-x64-baseline/bun "$HOME/.bun/bin/bun"
+          chmod +x "$HOME/.bun/bin/bun"
+          rm -rf /tmp/bun.zip /tmp/bun-override
 
       - uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          path_to_bun_executable: /tmp/bun-baseline/bun-darwin-x64-baseline/bun
+          path_to_bun_executable: ~/.bun/bin/bun
           claude_args: "--model claude-sonnet-4-6 --max-turns 10"
           direct_prompt: |
             Break down this feature into GitHub issues: ${{ inputs.feature_description }}
