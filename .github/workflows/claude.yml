@@ -37,6 +37,7 @@ jobs:
           label_trigger: "claude"
           include_fix_links: true
           show_full_output: true
+          additional_permissions: "Bash(gh:*)"
           claude_args: "--model claude-sonnet-4-6 --max-turns 15"
           prompt: |
             You are reviewing PR #${{ github.event.pull_request.number || github.event.issue.number }} in ${{ github.repository }}.
