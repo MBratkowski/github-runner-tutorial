@@ -36,6 +36,7 @@ jobs:
           trigger_phrase: "@claude"
           label_trigger: "claude"
           include_fix_links: true
+          show_full_output: true
           claude_args: "--model claude-sonnet-4-6 --max-turns 15"
           prompt: |
             You are a senior code reviewer for an Android Todo app (Kotlin, Jetpack Compose, Room, MVVM).
