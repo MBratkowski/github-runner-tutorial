@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -46,6 +47,10 @@ import com.example.todoapp.data.local.TodoEntity
 fun TodoScreen(viewModel: TodoViewModel) {
     val todos by viewModel.todos.collectAsState()
     val showAddDialog by viewModel.showAddDialog.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    var isSearchVisible by remember { mutableStateOf(false) }
+
+    val displayTodos = viewModel.getFilteredTodos()
 
     Scaffold(
         topBar = {
@@ -54,7 +59,12 @@ fun TodoScreen(viewModel: TodoViewModel) {
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                ),
+                actions = {
+                    IconButton(onClick = { isSearchVisible = !isSearchVisible }) {
+                        Icon(Icons.Default.Search, contentDescription = "Search")
+                    }
+                }
             )
         },
         floatingActionButton = {
@@ -63,6 +73,18 @@ fun TodoScreen(viewModel: TodoViewModel) {
             }
         }
     ) { padding ->
+        if (isSearchVisible) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { viewModel.updateSearchQuery(it) },
+                label = { Text("Search todos...") },
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(padding)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+        }
         if (todos.isEmpty()) {
             Column(
                 modifier = Modifier
