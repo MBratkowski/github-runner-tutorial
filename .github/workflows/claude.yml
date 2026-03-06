@@ -17,9 +17,29 @@ permissions:
   id-token: write
 
 jobs:
-  claude:
+  review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          mode: review
+          review_comment_prefix: "**Claude Review:**"
+          claude_args: "--model claude-sonnet-4-6"
+          prompt: |
+            You are a senior code reviewer for an Android Todo app (Kotlin, Jetpack Compose, Room, MVVM).
+            Read CLAUDE.md for project conventions.
+            Focus on bugs, security issues, performance, and code style.
+            Be concise and actionable.
+
+  agent:
     if: |
-      github.event_name == 'pull_request' ||
       (github.event_name == 'issues' && contains(github.event.issue.labels.*.name, 'claude')) ||
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude'))
@@ -36,21 +56,13 @@ jobs:
           trigger_phrase: "@claude"
           label_trigger: "claude"
           include_fix_links: true
-          show_full_output: true
           claude_args: "--model claude-sonnet-4-6 --max-turns 15"
           prompt: |
-            You are a senior code reviewer for an Android Todo app (Kotlin, Jetpack Compose, Room, MVVM).
+            You are a senior developer for an Android Todo app (Kotlin, Jetpack Compose, Room, MVVM).
             Read CLAUDE.md for project conventions.
 
-            When reviewing PRs:
-            - Focus on bugs, security issues, performance, and code style
-            - For small issues: suggest fixes with code, or use "Fix this" links
-            - For large issues: create a GitHub issue with `gh issue create` describing the problem, acceptance criteria, and suggested approach
-            - Be concise and actionable
-
-            When implementing issues (triggered by 'claude' label):
-            - Read the issue description carefully
-            - Implement the changes following existing patterns
+            When fixing code or implementing features:
+            - Follow existing patterns in the codebase
             - Run `./gradlew assembleDebug` to verify compilation
             - Run `./gradlew testDebugUnitTest` to run tests
             - Commit with descriptive message referencing the issue number
