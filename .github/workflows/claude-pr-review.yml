@@ -27,7 +27,7 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           include_fix_links: true
-          claude_args: '--model claude-sonnet-4-6 --max-turns 15 --allowedTools "Bash(gh:*)"'
+          claude_args: '--model claude-sonnet-4-6 --max-turns 25 --allowedTools "Bash(gh:*)"'
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
