@@ -46,3 +46,20 @@ jobs:
             performance problems, and code style. Post inline review comments
             on specific lines where you find issues. If everything looks good,
             approve the PR with a summary comment.
+          settings: |
+            {
+              "permissions": {
+                "allow": [
+                  "Bash(git diff:*)",
+                  "Bash(git log:*)",
+                  "Bash(git show:*)",
+                  "Bash(gh pr *)",
+                  "Bash(gh api *)",
+                  "Read",
+                  "Glob",
+                  "Grep",
+                  "Write",
+                  "Edit"
+                ]
+              }
+            }
