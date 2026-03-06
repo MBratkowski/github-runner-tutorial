@@ -34,15 +34,16 @@ jobs:
       - name: Setup CI environment
         run: |
           # Install Bun baseline (no AVX required for Intel Mac)
+          # Use /tmp/bun-baseline (NOT $HOME/.bun) to prevent setup-bun from overwriting it
           curl -fsSL https://github.com/oven-sh/bun/releases/download/bun-v1.3.10/bun-darwin-x64-baseline.zip -o /tmp/bun.zip
           unzip -o -q /tmp/bun.zip -d /tmp/bun-override
-          mkdir -p /tmp/claude-ci-home/.bun/bin
-          cp /tmp/bun-override/bun-darwin-x64-baseline/bun /tmp/claude-ci-home/.bun/bin/bun
-          chmod +x /tmp/claude-ci-home/.bun/bin/bun
+          mkdir -p /tmp/bun-baseline/bin
+          cp /tmp/bun-override/bun-darwin-x64-baseline/bun /tmp/bun-baseline/bin/bun
+          chmod +x /tmp/bun-baseline/bin/bun
           rm -rf /tmp/bun.zip /tmp/bun-override
 
           # Put baseline bun first in PATH so the action itself uses it
-          echo "/tmp/claude-ci-home/.bun/bin" >> $GITHUB_PATH
+          echo "/tmp/bun-baseline/bin" >> $GITHUB_PATH
 
           # Create clean Claude config (no local hooks)
           mkdir -p /tmp/claude-ci-home/.claude
@@ -53,7 +54,7 @@ jobs:
           HOME: /tmp/claude-ci-home
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          path_to_bun_executable: /tmp/claude-ci-home/.bun/bin/bun
+          path_to_bun_executable: /tmp/bun-baseline/bin/bun
           claude_args: "--model claude-sonnet-4-6 --max-turns 15 --dangerously-skip-permissions"
           trigger_phrase: "@claude"
           show_full_output: true
