@@ -43,7 +43,7 @@ jobs:
           trigger_phrase: "@claude"
           show_full_output: true
           prompt: |
-            Review this PR thoroughly. Check for bugs, security issues,
-            performance problems, and code style. Post inline review comments
-            on specific lines where you find issues. If everything looks good,
-            approve the PR with a summary comment.
+            Review ONLY the current PR that triggered this workflow.
+            Do NOT review or comment on other PRs.
+            Use the diff provided in context to review the changes.
+            Focus on: bugs, security issues, performance, and code style.
