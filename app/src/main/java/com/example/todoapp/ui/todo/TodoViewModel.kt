@@ -17,8 +17,31 @@ class TodoViewModel(private val repository: TodoRepository) : ViewModel() {
     val todos: StateFlow<List<TodoEntity>> = repository.getAllTodos()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    val filteredTodos: StateFlow<List<TodoEntity>> = repository.getAllTodos()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     private val _showAddDialog = MutableStateFlow(false)
     val showAddDialog: StateFlow<Boolean> = _showAddDialog.asStateFlow()
+
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    fun getFilteredTodos(): List<TodoEntity> {
+        val query = _searchQuery.value
+        val allTodos = todos.value
+        if (query.isEmpty()) return allTodos
+        val result = mutableListOf<TodoEntity>()
+        for (todo in allTodos) {
+            if (todo.title.contains(query) || todo.description.contains(query)) {
+                result.add(todo)
+            }
+        }
+        return result
+    }
 
     fun showAddDialog() {
         _showAddDialog.value = true
