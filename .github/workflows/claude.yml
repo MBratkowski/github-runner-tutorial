@@ -6,7 +6,7 @@ on:
   pull_request_review_comment:
     types: [created]
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize]
   issues:
     types: [opened, labeled]
 
@@ -23,43 +23,33 @@ jobs:
       (github.event_name == 'issues' && contains(github.event.issue.labels.*.name, 'claude')) ||
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude'))
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref || github.ref }}
-          fetch-depth: 0
-
-      - name: Setup CI environment
-        run: |
-          # Install Bun baseline (no AVX required for Intel Mac)
-          # Use /tmp/bun-baseline (NOT $HOME/.bun) to prevent setup-bun from overwriting it
-          curl -fsSL https://github.com/oven-sh/bun/releases/download/bun-v1.3.10/bun-darwin-x64-baseline.zip -o /tmp/bun.zip
-          unzip -o -q /tmp/bun.zip -d /tmp/bun-override
-          mkdir -p /tmp/bun-baseline/bin
-          cp /tmp/bun-override/bun-darwin-x64-baseline/bun /tmp/bun-baseline/bin/bun
-          chmod +x /tmp/bun-baseline/bin/bun
-          rm -rf /tmp/bun.zip /tmp/bun-override
-
-          # Put baseline bun first in PATH so the action itself uses it
-          echo "/tmp/bun-baseline/bin" >> $GITHUB_PATH
-
-          # Create clean Claude config (no local hooks)
-          mkdir -p /tmp/claude-ci-home/.claude
-          echo '{}' > /tmp/claude-ci-home/.claude/settings.json
+          fetch-depth: 1
 
       - uses: anthropics/claude-code-action@v1
-        env:
-          HOME: /tmp/claude-ci-home
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          path_to_bun_executable: /tmp/bun-baseline/bin/bun
-          claude_args: "--model claude-sonnet-4-6 --max-turns 15 --dangerously-skip-permissions"
           trigger_phrase: "@claude"
-          show_full_output: true
+          label_trigger: "claude"
+          include_fix_links: true
+          claude_args: "--model claude-sonnet-4-6 --max-turns 15"
           prompt: |
-            Review ONLY the current PR that triggered this workflow.
-            Do NOT review or comment on other PRs.
-            Use the diff provided in context to review the changes.
-            Focus on: bugs, security issues, performance, and code style.
+            You are a senior code reviewer for an Android Todo app (Kotlin, Jetpack Compose, Room, MVVM).
+            Read CLAUDE.md for project conventions.
+
+            When reviewing PRs:
+            - Focus on bugs, security issues, performance, and code style
+            - For small issues: suggest fixes with code, or use "Fix this" links
+            - For large issues: create a GitHub issue with `gh issue create` describing the problem, acceptance criteria, and suggested approach
+            - Be concise and actionable
+
+            When implementing issues (triggered by 'claude' label):
+            - Read the issue description carefully
+            - Implement the changes following existing patterns
+            - Run `./gradlew assembleDebug` to verify compilation
+            - Run `./gradlew testDebugUnitTest` to run tests
+            - Commit with descriptive message referencing the issue number
