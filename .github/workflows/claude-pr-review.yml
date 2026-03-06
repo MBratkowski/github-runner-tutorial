@@ -54,30 +54,51 @@ jobs:
             - **SUGGESTION** — better approaches, cleaner patterns, maintainability improvements
             - **NITPICK** — style, naming, minor formatting
 
-            ## Output Format
-            Post your review using the GitHub API with INLINE comments on specific lines.
-            Use `gh pr diff ${{ github.event.pull_request.number }}` to identify the exact changed line numbers in the diff.
+            ## Output Format — Inline Comments
+            Post your review using the GitHub API with inline comments pinned to specific lines.
 
-            IMPORTANT: You MUST use the `line` parameter (not `position`) — this is the line number in the file, not the diff hunk position.
-            Only comment on lines that are part of the PR diff (added or modified lines on the RIGHT side of the diff).
+            ### How to determine line numbers
+            1. Run `gh pr diff ${{ github.event.pull_request.number }}`
+            2. In the diff output, look at the `@@` hunk headers, e.g. `@@ -10,6 +12,8 @@`
+               - The `+12,8` means new file starts at line 12 for 8 lines
+            3. Count lines with `+` prefix (added) or ` ` prefix (context) from the hunk start
+            4. The `line` value in your JSON must be the LINE NUMBER IN THE NEW VERSION OF THE FILE
+            5. You can also read the full file to verify line numbers
 
-            Build a JSON file `/tmp/review.json` with this structure:
+            ### CRITICAL RULES for the JSON
+            - Use `"line"` (integer) — the line number in the file, NOT the diff position
+            - Use `"side": "RIGHT"` — always comment on the new version
+            - Do NOT include a `"position"` field — it will override `line` and break placement
+            - Only comment on lines that appear in the diff (added or modified lines)
+
+            ### Example
+            If the diff shows:
+            ```
+            @@ -5,6 +5,10 @@ class Foo {
+            +    fun badMethod() {
+            +        GlobalScope.launch { }  // line 7 in new file
+            +    }
+            ```
+            Then use `"line": 7` to comment on the GlobalScope line.
+
+            ### Build and post the review
+            Create `/tmp/review.json`:
             ```json
             {
               "event": "COMMENT",
               "body": "## PR Review Summary\n\n<1-line overall assessment>",
               "comments": [
                 {
-                  "path": "relative/path/to/file.kt",
-                  "line": <line_number_in_file>,
+                  "path": "app/src/main/java/com/example/todoapp/ui/todo/TodoViewModel.kt",
+                  "line": 59,
                   "side": "RIGHT",
-                  "body": "**[SEVERITY]** Description of the issue.\n\nSuggested fix: ..."
+                  "body": "**[CRITICAL]** `GlobalScope.launch` leaks — use `viewModelScope`."
                 }
               ]
             }
             ```
 
-            Then post it with:
+            Post with:
             ```bash
             gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews \
               --method POST \
@@ -87,6 +108,6 @@ jobs:
             Rules:
             - Each finding = one inline comment on the exact line
             - Use severity prefix: **[CRITICAL]**, **[WARNING]**, **[SUGGESTION]**, **[NITPICK]**
-            - The `body` field in the top-level review is a short summary
+            - The `body` field is a short summary of the overall review
             - Only flag real issues, not stylistic preferences unless they violate CLAUDE.md conventions
             - Be concise in each comment
