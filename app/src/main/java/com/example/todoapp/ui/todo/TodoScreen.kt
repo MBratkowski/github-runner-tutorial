@@ -72,12 +72,13 @@ fun TodoScreen(viewModel: TodoViewModel) {
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "No todos yet",
-                    style = MaterialTheme.typography.bodyLarge,
+                    text = "No todos yet!",
+                    style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Tap + to add one",
+                    text = "Tap the + button to create your first task",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
