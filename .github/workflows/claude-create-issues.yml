@@ -1,0 +1,40 @@
+name: Claude Create Issues
+
+on:
+  workflow_dispatch:
+    inputs:
+      feature_description:
+        description: 'Describe the feature to break into issues'
+        required: true
+        type: string
+
+permissions:
+  issues: write
+
+jobs:
+  create-issues:
+    runs-on: self-hosted
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create issues with Claude
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FEATURE: ${{ inputs.feature_description }}
+        run: |
+          claude -p \
+            --allowedTools "Bash(gh *),Read,Glob,Grep" \
+            "Break down this feature into GitHub issues: $FEATURE \
+            1. Read the codebase to understand the current architecture. \
+            2. Split the feature into 3-6 logical issues. \
+            3. For each issue, create it with: \
+               gh issue create --title '<title>' --body '<body>' \
+            4. Each issue body should include: \
+               - Description of the task \
+               - Acceptance criteria (checklist) \
+               - Files likely to change \
+               - Suggested approach \
+            5. Label issues if labels exist (check with gh label list first)."
