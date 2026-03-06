@@ -35,7 +35,27 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           trigger_phrase: "@claude"
           label_trigger: "claude"
-          track_progress: true
           include_fix_links: true
           show_full_output: true
           claude_args: "--model claude-sonnet-4-6 --max-turns 15"
+          prompt: |
+            You are reviewing PR #${{ github.event.pull_request.number || github.event.issue.number }} in ${{ github.repository }}.
+            Event: ${{ github.event_name }} (${{ github.event.action }})
+
+            IMPORTANT: You MUST take action. Do NOT just say you're ready.
+
+            If this is a pull_request event:
+            1. Run: gh pr diff ${{ github.event.pull_request.number || github.event.issue.number }}
+            2. Review the diff for bugs, security issues, performance problems, and style
+            3. Read CLAUDE.md for project conventions
+            4. Post your review with: gh pr review ${{ github.event.pull_request.number || github.event.issue.number }} --comment --body "<your review>"
+            5. Be concise and reference specific files/lines
+
+            If this is an issue event with 'claude' label:
+            1. Run: gh issue view ${{ github.event.issue.number }}
+            2. Implement the requested changes
+            3. Run ./gradlew assembleDebug && ./gradlew testDebugUnitTest
+            4. Commit and push
+
+            If this is a comment with @claude:
+            1. Read the comment and respond to the request
