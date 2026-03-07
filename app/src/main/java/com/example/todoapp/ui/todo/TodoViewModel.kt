@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.todoapp.data.local.TodoEntity
 import com.example.todoapp.data.repository.TodoRepository
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -57,7 +56,7 @@ class TodoViewModel(private val repository: TodoRepository) : ViewModel() {
     }
 
     fun searchTodos(query: String) {
-        GlobalScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(Dispatchers.IO) {
             _searchResults.value = repository.searchTodos(query)
         }
     }
