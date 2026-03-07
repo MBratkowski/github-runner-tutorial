@@ -20,4 +20,16 @@ interface TodoDao {
 
     @Delete
     suspend fun delete(todo: TodoEntity)
+
+    @Query("SELECT * FROM todos WHERE title LIKE '%' || :query || '%'")
+    suspend fun searchTodos(query: String): List<TodoEntity>
+
+    @Query("DELETE FROM todos WHERE isCompleted = 1")
+    suspend fun deleteCompleted(): Int
+
+    @Insert
+    suspend fun insertAll(todos: List<TodoEntity>)
+
+    @Query("SELECT * FROM todos WHERE id = :id")
+    suspend fun getTodoById(id: Long): TodoEntity?
 }

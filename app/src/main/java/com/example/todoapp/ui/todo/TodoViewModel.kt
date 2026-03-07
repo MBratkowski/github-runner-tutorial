@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.todoapp.data.local.TodoEntity
 import com.example.todoapp.data.repository.TodoRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -19,6 +20,12 @@ class TodoViewModel(private val repository: TodoRepository) : ViewModel() {
 
     private val _showAddDialog = MutableStateFlow(false)
     val showAddDialog: StateFlow<Boolean> = _showAddDialog.asStateFlow()
+
+    private val _searchResults = MutableStateFlow<List<TodoEntity>>(emptyList())
+    val searchResults: StateFlow<List<TodoEntity>> = _searchResults.asStateFlow()
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     fun showAddDialog() {
         _showAddDialog.value = true
@@ -45,6 +52,32 @@ class TodoViewModel(private val repository: TodoRepository) : ViewModel() {
     fun deleteTodo(todo: TodoEntity) {
         viewModelScope.launch {
             repository.deleteTodo(todo)
+        }
+    }
+
+    fun searchTodos(query: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _searchResults.value = repository.searchTodos(query)
+        }
+    }
+
+    fun deleteCompletedTodos() {
+        viewModelScope.launch {
+            val activeTodos = todos.value.filter { !it.isCompleted }
+            repository.deleteCompletedAndReinsert(activeTodos)
+        }
+    }
+
+    fun duplicateTodo(todo: TodoEntity) {
+        viewModelScope.launch {
+            repository.duplicateTodo(todo.id)
+        }
+    }
+
+    fun bulkMarkComplete() {
+        viewModelScope.launch(Dispatchers.Main) {
+            val updated = todos.value.map { it.copy(isCompleted = true) }
+            repository.bulkUpdate(updated)
         }
     }
 
